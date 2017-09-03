@@ -1,0 +1,28 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+        <link rel="stylesheet" href="/css/login.css">
+
+        <title>VK for Ukraine</title>
+    </head>
+    <body>
+        <div style="margin: 0 auto;">
+            <div class="error_msg">
+                    {% for error in errors %}
+                        {{ error }}
+                    {% endfor %}
+            </div>
+            <form action="auth" method="post">
+	            <span>Login</span><br>
+	            <input type="text" name="email" placeholder="enter input" title="Enter login here"><br>
+                <span>Password</span><br>
+	            <input type="password" name="password" placeholder="enter input" title="Enter phone here"><br>
+        	    <input type="submit" name="submit"><br>
+            </form>
+        </div>
+    </body>
+</html>

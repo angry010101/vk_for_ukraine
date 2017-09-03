@@ -1,0 +1,502 @@
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="/css/main.css">
+		<link rel="stylesheet" type="text/css" href="/css/im.css">
+		<script>
+		    var __cache = [];
+		    var url_to_replace = "/gets?url=";
+		    var maxcount = 0;
+		    var current_user = [];
+		    var current_dialog = [];
+		    var dialogs_offset=0,messages_offset=0;
+		    var addToOffsetDlg=true,addToOffsetMsg=true;
+
+            function showAttachmentAlert(x){
+                 var ai = document.getElementById("alertInf");
+
+                 var aic = document.getElementById("alertInfContainer");
+                 var ab = document.getElementById("alertBg");
+                 var i = document.createElement("img");
+                 i.src = x;
+                 i.style.width = "80%";
+                 i.style.height = "100%";
+
+                 ai.onclick = function() {
+                     ab.style.display = "none";
+                     ai.style.display = "none";
+                     aic.innerHTML = "";
+                 }
+
+                 aic.appendChild(i);
+                 ab.style.display = "block";
+                 ai.style.display = "block";
+            }
+			function onComplete(){
+				var x = document.getElementsByClassName("prev_msg_container");
+					if (x.length <= 4) {
+						document.getElementById('end_container').style.display = 'none';
+					}
+                getPrevInfo();
+                newMessagesGetter();
+			}
+
+            function clearChatContainer(){
+			    document.getElementById("msg_container").innerHTML = "";
+            }
+
+			function sel_rec_id(rid,isChat,offset){
+                document.getElementById('rec_id').value = rid;
+
+
+                if (current_dialog["rid"] !== rid) {
+                    messages_offset = 0;
+                    document.getElementById("msg_container").innerHTML = "";
+                }
+                rid = parseInt(rid);
+                offset = parseInt(offset);
+                current_dialog["isChat"] = isChat;
+                current_dialog["rid"] = rid;
+                current_dialog["offset"] = offset;
+
+                if (isChat == "1") {
+                    rid = rid + 2000000000;
+                }
+                var params = "uid=" + encodeURIComponent(rid) + "&offset=" + encodeURIComponent(offset);
+                var xhr = new XMLHttpRequest();
+
+                xhr.open('POST', '/getmsg', false);
+                xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                // 3. Отсылаем запрос
+                xhr.send(params);
+
+                xhr.onreadystatechange = parseMsgResponse(xhr.responseText,rid);
+			}
+
+    		function parseMsgResponse(t,rid){
+                var jt =  JSON.parse(t);
+                var c = parseInt(jt[0]["data"]);
+                maxcount = ((c > 20) ? 20 : c);
+
+                //if (addToOffsetMsg){
+                  //  addToOffsetMsg = false;
+                    messages_offset += maxcount;
+                //}
+                for (var i=1;i<=maxcount; i++){
+                    var dinp = document.createElement("div");
+                    dinp.className = "msg_container";
+
+                    var divElem = document.createElement("div");
+                    divElem.className = "main_msg_container";
+
+                    var divH = document.createElement("div");
+                    divH.className = "main_msg_headers";
+
+                    var divC = document.createElement("div");
+                    divC.className = "main_msg_content";
+
+                    var divM = document.createElement("div");
+                    divM.className = "main_msg_text";
+                    divM.innerHTML = jt[i]["data"]["body"];
+
+                    var dspan = document.createElement("span");
+                    dspan.className = "main_date_text";
+
+                    var nspan = document.createElement("span");
+                    nspan.className = "main_name_text";
+
+
+                    var s_img = document.createElement("img");
+                    s_img.className = "main_photo_img";
+
+                    var temp = getInf(__cache["users"],jt[i]["data"]["uid"]);
+                    if (temp){
+                        nspan.innerHTML = temp["first_name"] + " " + temp["last_name"];
+                        s_img.src = url_to_replace + temp["photo_50"];
+                    }
+        /*
+                    if (jt[i]["data"]["uid"] == rid){
+                        nspan.innerHTML = name;
+                    }
+                    else {
+                        nspan.innerHTML = current_user["first_name"] + " " + current_user["last_name"];
+                    }
+
+                    if (jt[i]["data"]["uid"] == rid){
+                        s_img.src = img;
+                    }
+                    else {
+                        s_img.src = current_user["photo_50"];
+                    }
+*/
+                    var divO = document.createElement("div");
+                    divO.className = "main_msg_options";
+
+                    var divI = document.createElement("div");
+                    divI.className = "main_msg_img_wrapper";
+
+                    divI.appendChild(s_img);
+                    divI.appendChild(divM);
+
+                    divH.appendChild(nspan);
+                    divH.appendChild(dspan);
+
+                    divC.appendChild(divI);
+
+                    divElem.appendChild(divH);
+                    divElem.appendChild(divC);
+
+                    dinp.appendChild(divO);
+                    dinp.appendChild(divElem);
+
+                    if (typeof jt[i]["data"]["fwd_messages"] != 'undefined'){
+                        var a = jt[i]["data"]["fwd_messages"];
+                        for (var i1=0; i1<a.length; i1++){
+                             var divF = document.createElement("div");
+                             divF.className = "msg_attachments";
+                             divF.innerHTML = a[i1]["body"];
+                        }
+                        divI.appendChild(document.createElement("br"));
+                        divI.appendChild(divF);
+                    }
+
+                    if (typeof jt[i]["data"]["attachments"] != 'undefined'){
+                        var a = jt[i]["data"]["attachments"];
+                        var divF = document.createElement("div");
+                        divF.className = "msg_attachments";
+                        for (var i1=0; i1<a.length; i1++){
+                             switch (a[i1]["type"]){
+                                 case "photo":
+                                     var img1 = document.createElement("img");
+                                     img1.setAttribute("large",url_to_replace + a[i1]["photo"]["src_big"]);
+                                     img1.src = url_to_replace + a[i1]["photo"]["src"];
+                                     divF.appendChild(img1);
+                                     img1.onclick = function(){
+                                         showAttachmentAlert(this.getAttribute("large"));
+                                     }
+                                     break;
+                                 default:
+                                     break;
+                             }
+                        }
+                        divI.appendChild(document.createElement("br"));
+                        divI.appendChild(divF);
+                    }
+
+                    document.getElementById('msg_container').appendChild(dinp);
+                }
+                startedLoadingMore = false;
+            }
+
+			function getPrevInfo(){
+                var xhr = new XMLHttpRequest();
+
+		        xhr.onreadystatechange = function(){
+		          parseMsgInfoPrev(xhr.responseText);
+		          startedUpdating=false;
+		        } ;
+                xhr.open('GET', '/execute?r=' + Math.random(), true);
+
+		        xhr.send();
+/*
+		        if (xhr.status != 200) {
+                  // обработать ошибку
+                  parseMsgInfoPrev(xhr.responseText);
+                  //alert( xhr.status + ': ' + xhr.statusText ); // пример вывода: 404: Not Found
+                } else {
+                  // вывести результат
+                  parseMsgInfoPrev(xhr.responseText);
+                }*/
+			}
+
+			function sendMsg(id,txt){
+                var params = "msg=" + encodeURIComponent(txt) + "&toid=" + encodeURIComponent(parseInt(id));
+			    var xhr = new XMLHttpRequest();
+                xhr.open('POST', '/im', false);
+                xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                // 3. Отсылаем запрос
+                xhr.send(params);
+                xhr.onreadystatechange = parseSendMsgResponse(xhr.responseText,txt,id);
+			}
+
+			function parseSendMsgResponse(r,txt,id){
+			   if (typeof parseInt(r) !== "undefined"){
+			       //OK
+			       addMsg(r,txt,current_user);
+			       document.getElementById("msgtxt").value="";
+			   }
+			   else {
+			       addMsg(-r,txt,current_user);
+			       document.getElementById("msgtxt").value="";
+			       //ERR
+			   }
+			}
+
+			function addMsg(r,txt,u){
+                    var dinp = document.createElement("div");
+                    dinp.className = "msg_container";
+
+                    var divElem = document.createElement("div");
+                    divElem.className = "main_msg_container";
+
+                    var divH = document.createElement("div");
+                    divH.className = "main_msg_headers";
+
+                    var divC = document.createElement("div");
+                    divC.className = "main_msg_content";
+
+                    var divM = document.createElement("div");
+                    divM.className = "main_msg_text";
+                    divM.innerHTML = txt;
+
+                    var dspan = document.createElement("span");
+                    dspan.className = "main_date_text";
+
+                    var nspan = document.createElement("span");
+                    nspan.className = "main_name_text";
+                    nspan.innerHTML = u["first_name"] + " " + u["last_name"];
+
+                    var s_img = document.createElement("img");
+                    s_img.className = "main_photo_img";
+                    s_img.src = u["photo_50"];
+
+                    var divO = document.createElement("div");
+                    divO.className = "main_msg_options";
+
+                    var divI = document.createElement("div");
+                    divI.className = "main_msg_img_wrapper";
+
+
+                    divI.appendChild(s_img);
+                    divI.appendChild(divM);
+
+                    divH.appendChild(nspan);
+                    divH.appendChild(dspan);
+
+                    divC.appendChild(divI);
+
+                    divElem.appendChild(divH);
+                    divElem.appendChild(divC);
+
+                    dinp.appendChild(divO);
+                    dinp.appendChild(divElem);
+
+                    if (r<0){
+
+                    }
+
+                    var main_c = document.getElementById('msg_container');
+                    main_c.insertBefore(dinp,main_c.children[0]);
+			}
+
+
+            var addedCacheFirstMsgPrev = false;
+			function parseMsgInfoPrev(t){
+                var jt = JSON.parse(t);
+                var msgs = jt["msgs"];
+                var users = jt["users"];
+                var me = jt["me"][0];
+                parseMyPrevInfo(me);
+                if (addedCacheFirstMsgPrev == false) { __cache["users"] = users; addedCacheFirstMsgPrev == true }
+                parsePrevMsg(msgs);
+            }
+
+
+
+            function parseMyPrevInfo(me){
+                current_user["first_name"] = me["first_name"];
+		        current_user["last_name"] = me["last_name"];
+		        current_user["id"] = me["uid"];
+
+		        current_user["photo_50"] = ("/images/camera_50.png" != me["photo_50"]) ? url_to_replace + me["photo_50"] : me["photo_50"];
+		        document.getElementById("my_img").src = current_user["photo_50"];
+            }
+
+            function parsePrevMsg(m){
+                var c = parseInt(m[0]);
+                var mdivc = document.createElement("div");
+                maxcount = ((c > 20) ? 20 : c);
+                if (maxcount == 0) {
+                        var divElem = document.createElement("div");
+                        divElem.className = "prev_msg_container";
+                        divElem.innerHTML = "There is no messages there :(";
+                        document.getElementById('prev_msg_container').appendChild(divElem);
+                }
+                if (addToOffsetDlg){
+                    addToOffsetDlg = false;
+                    dialogs_offset += maxcount;
+                }
+                for (var i=1;i<=maxcount; i++){
+                    var divElem = document.createElement("div");
+                    divElem.className = "prev_msg_container";
+
+                    var divH = document.createElement("div");
+                    divH.className = "prev_msg_headers";
+
+                    var divC = document.createElement("div");
+                    divC.className = "prev_msg_content";
+
+                    var divT = document.createElement("div");
+                    divT.className = "prev_msg_text";
+                    divT.innerHTML = m[i]["body"];
+
+                    //TODO: check if chat
+                    var nspan = document.createElement("span");
+                    nspan.className = "prev_name_text";
+
+                    var did = document.createElement("div");
+                    did.style.display = 'none';
+
+                    var img1 = document.createElement("img");
+                    img1.className = "photo_img";
+                    img1.onerror = function() {
+                        this.src = '/images/camera_50.png';
+                    }
+
+                    var uinf = getInf(__cache["users"],m[i]["uid"]);
+                    var isrc = uinf["photo_50"];
+                    isrc = isrc.replace("https://vk.com","");
+                    //if (m[i]["out"] == "0") {
+                        img1.src = ("/images/camera_50.png" != isrc) ? url_to_replace + isrc : isrc;
+                    /*}
+                    else {
+                        img1.src = current_user["photo_50"];
+                    }*/
+                    if (typeof m[i]["fwd_messages"] != 'undefined'){
+                        divT.innerHTML += "<span style='color: blue'>Forwarded messages</span>"
+                    }
+                    if (typeof m[i]["attachment"] != 'undefined' || typeof m[i]["attachments"] != 'undefined' ){
+                        divT.innerHTML += "<span style='color: blue'>Attachments</span>"
+                    }
+
+                    if (typeof m[i]["chat_id"] !== 'undefined'){
+                        nspan.innerHTML = m[i]["title"];
+
+                        did.className = "user_id";
+                        did.innerHTML = m[i]["chat_id"];
+                        did.setAttribute("isChat","1");
+                    }
+                    else {
+                        nspan.innerHTML = uinf["first_name"] + " " + uinf["last_name"];
+
+                        did.className = "user_id";
+                        did.innerHTML = m[i]["uid"];
+                        did.setAttribute("isChat","0");
+                    }
+
+                    var dspan = document.createElement("span");
+                    dspan.className = "prev_date_text";
+                    dspan.innerHTML = new Date(parseInt(m[i]["date"])).toDateString();
+
+
+                    divH.appendChild(nspan);
+                    divH.appendChild(dspan);
+
+
+                    divC.appendChild(img1);
+                    divC.appendChild(divT);
+
+                    divElem.appendChild(did);
+                    divElem.appendChild(divH);
+                    divElem.appendChild(divC);
+
+
+                    if (divElem.addEventListener)
+                        divElem.addEventListener('click',function () { sel_rec_id(this.getElementsByClassName("user_id")[0].innerHTML,this.getElementsByClassName("user_id")[0].getAttribute("isChat"),0); },false); //everything else
+                    else if (divElem.attachEvent)
+                        divElem.attachEvent('onclick',function() { sel_rec_id(this.getElementsByClassName("user_id")[0].innerHTML,this.getElementsByClassName("user_id")[0].getAttribute("isChat"),0); });  //IE only
+
+                    mdivc.appendChild(divElem);
+                }
+                document.getElementById('prev_msg_container').innerHTML = "";
+                document.getElementById('prev_msg_container').appendChild(mdivc);
+            }
+
+            function getInf(arr,v){
+                for (var i=0; i<maxcount-1; i++){
+                    if (arr[i]["uid"] == v){
+                        return arr[i];
+                    }
+                }
+            }
+
+            function ctrlEnter(event, formElem){
+                if((event.ctrlKey) && ((event.keyCode == 0xA)||(event.keyCode == 0xD))){
+                    sendMsg(document.getElementById('rec_id').value,document.getElementById('msgtxt').value);
+                }
+            }
+
+
+            var startedUpdating = false;
+            var timerId;
+            //fuck angular
+            function newMessagesGetter(){
+                timerId = setInterval(function() { if (startedUpdating == false) { startedUpdating=true; getPrevInfo();}  }, 2000);
+            }
+
+            function stopCallBack(){
+                clearInterval(timerId);
+            }
+
+            var startedLoadingMore = false;
+            function msgContainerScroll(t){
+                var myDiv = document.getElementById("msg_container");
+                if (myDiv.offsetHeight + myDiv.scrollTop >= myDiv.scrollHeight - 100 && !startedLoadingMore) {
+                    startedLoadingMore = true;
+                    sel_rec_id(current_dialog["rid"],current_dialog["isChat"],messages_offset);
+                }
+            }
+		</script>
+		<script src="bower_components/angular/angular.js"></script>
+	<head>
+	<body onload="onComplete();">
+	    <div class="alert_info" id="alertInf">
+	        <div class="alert_info_container" id="alertInfContainer"></div>
+	    </div>
+	    <div class="alert_background" id="alertBg"></div>
+		<div class="main">
+			<div class="main_header">
+				<img class="logo_img">
+				<span class="logo_text">VK for Ukraine</span>
+				<div class="main_content"></div>
+				<img class="profile_img" id="my_img" src="">
+			</div>
+			<!-- <div class="border"></div> -->
+			<div class="nav_menu">
+  				<a href="#news">News</a>
+				<a href="#home">Messages</a>
+  				<a href="#contact">Contact</a>
+  				<a href="#about">About</a>
+  				<a href="#lalaland" class="expansion">...</a>
+			</div>
+			<div class="content">
+				<div class="container left" id="prev_msg_container">
+					<div id="end_container" class="prev_msg_end_container" >
+						...
+					</div>
+				</div>
+				<div class="container right">
+					<div class="messages" id="msg_container" onscroll="msgContainerScroll(this);">
+
+					</div>
+					<div class="send_msg_block">
+						<div class="rotate_block">
+							<form action="" method="post" class="main_form" onsubmit="return false;" onkeypress="ctrlEnter(event, this);">
+								<div class="top_msg_textarea">
+
+								</div>
+								<textarea type="text" id="msgtxt" name="msg" placeholder="Your message..."></textarea>
+								<div class="send_btn">
+									<input type="submit" name="sbm" value="send" class="send_btn_input" onclick="sendMsg(document.getElementById('rec_id').value,document.getElementById('msgtxt').value); return false;">
+								</div>
+								<input type="hidden" id="rec_id" name="recipient_id" >
+								<div class="msg_tools">
+								</div>
+							</form>
+						</div>
+					</div>
+				</div>
+			</div>
+			<!-- <div class="footer"></div> -->
+		</div>
+	</body>
+</html>

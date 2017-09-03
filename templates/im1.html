@@ -1,0 +1,143 @@
+<html>
+    <head>
+        <style>
+            .listdemoBasicUsage md-divider {
+                margin-top: 10px;
+                margin-bottom: 0;
+            }
+        </style>
+         <style>
+            html, body {
+            height: 100%;
+            margin: 0;
+         padding: 0;
+            overflow: hidden;
+        }
+        body {
+            overflow: auto; /* добавить полосу прокрутки */
+        }
+        main {
+            min-height: 100%;
+        }
+        </style>
+
+        <link rel="stylesheet" type="text/css" href="/css/im.css">
+        <script src="/js/openapi.js" type="text/javascript"></script>
+        <script type="text/javascript">
+            //SHIT begins
+            window.vkAsyncInit = function() {
+                VK.init({
+                    apiId: 6119495
+                    });
+                };
+
+            setTimeout(function() {
+                var el = document.createElement("script");
+                el.type = "text/javascript";
+                el.src = "/js/openapi.js";
+                el.async = true;
+                document.getElementById("vk_api_transport").appendChild(el);
+            }, 0);
+
+
+            function fn_auth() {
+                        document.write("padfas");
+                         VK.Auth.login(function(response) {
+                            if (response.session) {
+                                document.write("success auth js");
+                                /* User is authorized successfully */
+                                if (response.settings) {
+                                /* Selected user access settings, if they were requested */
+                                }
+                            } else {
+                                document.write("err auth js");
+                                alert("You should allow the app to use your info.")
+                                /* User clicked Cancel button in the authorization window */
+                            }
+                        }
+                    );
+            };
+            // shit ends
+
+            //son of bitch
+            function sel_rec_id(rid){
+                document.getElementById('rec_id').value = rid;
+                alert('sel' + rid);
+
+                var params = "uid=" + encodeURIComponent(rid) ;
+                var xhr = new XMLHttpRequest();
+
+                xhr.open('POST', '/getmsg', true);
+                xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                // 3. Отсылаем запрос
+                xhr.send(params);
+
+
+                //WTF??? 0 is success
+                // 4. Если код ответа сервера не 200, то это ошибка
+                if (xhr.status != 200) {
+                  // обработать ошибку
+                  alert( xhr.status + ': ' + xhr.statusText ); // пример вывода: 404: Not Found
+                  parseMsgResponse(xhr.responseText);
+                } else {
+                  // вывести результат
+                  parseMsgResponse(xhr.responseText);
+                  alert( xhr.responseText ); // responseText -- текст ответа.
+                }
+            }
+        </script>
+        <script>
+            function parseMsgResponse(t){
+                var jt =  JSON.parse(t);
+
+
+
+                var c = parseInt(jt[0]["data"]);
+                var maxcount = ((c > 20) ? 21 : c);
+                for (var i=1;i<maxcount; i++){
+                    var divElem = document.createElement("div");
+                    divElem.className = "msg_container";
+                    divElem.innerHTML = jt[i]["data"]["body"];
+                    var img1 = document.createElement("img");
+                    var sp = document.createElement("span");
+                   // img.src=jt[i][""][""]
+                    document.getElementById('msg_container').appendChild(divElem);
+                }
+            }
+        </script>
+    </head>
+    <body style="margin: 0 auto">
+        <div class="header" style="background-color: blue; height:50px; text-align: center; padding-top:5px">
+            <span style="font-size: 22px; color: white;font-family: arial;">Vk for Ukraine</span>
+        </div>
+        <div class="friends_list" style="width: 250px; background-color: yellow; position: fixed; overflow: scroll; height: 100%;">
+                              <div>
+                                <span>Your friends</span>
+                              </div>
+            {% for f in friends %}
+                <div class="friends_list_item" style="height: 50px" onclick="sel_rec_id( {{ f['uid'] }} );">
+                    <img src="{{ f['photo'] }}" style="vertical-align: top;">
+                    <span style="font-color: white;">{{  f['first_name'] }}  {{ f['last_name'] }}</span>
+                </div>
+            {% endfor %}
+             <div style="height: 150px">
+
+            </div>
+        </div>
+        <div style="display: block; height: 100%; position: fixed; margin-left: 250px;" id="msg_container">
+
+        </div>
+        <button onclick="fn_auth()">
+
+        </button>
+        <div id="vk_api_transport"></div>
+
+        <div id="footer" style="position: fixed;  top: 100%;  left: 0;  width: 100%;  height: 100%; margin-top: -100px; text-align: center;background-color: gray">
+                <form action="/im" method="post">
+                    <textarea type="text" width="100%" rows="1" name="msg" placeholder="Your message..." title="Enter your message"></textarea>
+                    <input type="hidden" name="recipient_id" id="rec_id" value="55012297">
+                    <input type="submit" name="sbm" value="Send message">
+                </form>
+        </div>
+    </body>
+</html>

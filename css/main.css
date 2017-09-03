@@ -1,0 +1,131 @@
+body {
+	margin: 0 auto;
+	background-color: #E6F3F7;
+}
+
+
+body div {
+	background-color: #3C99B4;
+}
+
+
+
+.alert_info{
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    z-index: 9;
+    background: transparent;
+    display: none;
+}
+
+.alert_info_container{
+    width: 85%;
+    text-align: center;
+    height: 80%;
+    z-index: 9;
+    margin: 0 auto;
+    background: white;
+}
+
+.alert_background{
+    width: 100%;
+    height: 100%;
+    background: black;
+    position: absolute;
+    opacity: 0.7;
+    z-index: 7;
+    display: none;
+}
+
+.main {
+	min-width: 850px;
+	max-width: 1010px;
+	margin: 0 auto;
+	text-align: center;
+}
+
+.main_header {
+	text-align: left;
+	height: 32px;
+	padding: 4px;
+}
+
+.main_header img{
+
+}
+
+.my_name_div {
+    display: none;
+}
+
+.main_header .logo_text{
+	font-size: 20px;
+	color: white;
+	margin-left: 8px;
+	font-family: sans-serif;
+}
+
+.main_header .logo_img{
+	margin-left: 6px;
+	vertical-align: top;
+	background-color: black;
+	width: 32px;
+	height: 32px;
+}
+
+.main_header .profile_img{
+	vertical-align: top;
+	background-color: black;
+	width: 32px;
+	height: 32px;
+	float: right;
+}
+
+.main_header .main_content {
+	display: inline-block;
+}
+
+.nav_menu {
+	height: 36px;
+	overflow: hidden;
+}
+
+
+.nav_menu a {
+	font-family: tahoma;
+	float: left;
+	display: block;
+	color: #fff;
+	text-align: center;
+	padding: 14px 16px;
+	text-decoration: none;
+	font-size: 16px;
+	padding: 8px 14px;
+}
+
+.nav_menu .expansion{
+	font-size: 18px;
+	float: right;
+}
+
+.nav_menu a:hover {
+	background-color: #ddd;
+	color: black;
+}
+
+.nav_menu a.active {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.border{
+	height: 2px;
+    background-color: yellow;
+}
+
+.footer {
+	height: 48px;
+	left: 0;
+	bottom: 0;
+}
