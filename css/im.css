@@ -44,6 +44,7 @@
 	height: 36px;
 	background-position: center;
 	background-image: url("/images/photo_50.png");
+	border-radius: 6px;
 }
 
 .msg {
@@ -52,9 +53,9 @@
 
 .prev_msg_text {
 	display: block;
-	font-size: 16px;
+	font-size: 15px;
 	width: 204px;
-	max-height: 42px;
+	max-height: 58px;
 	float: right;
 	margin-left: 8px;
 	overflow: hidden;
@@ -74,9 +75,9 @@
 
 .prev_name_text {
 	font-family: Verdana, Arial, Helvetica, sans-serif;
-	font-size: 16px;
+	font-size: 14px;
 	vertical-align: top;
-	color: #232323;
+	color: #3859a8;
 }
 
 .prev_msg_headers {
@@ -118,7 +119,7 @@
 
 .main_name_text {
     font-family: fantasy;
-    font-size: 16px;
+    font-size: 15px;
     vertical-align: top;
     color: #232323;
     display: block;
@@ -138,8 +139,8 @@
 }
 
 .main_photo_img {
-	width: 48px;
-	height: 48px;
+	width: 42px;
+	height: 42px;
 }
 
 .main_msg_options{
@@ -188,6 +189,7 @@
 	width: 100%;
 	bottom: 0;
 	height:22px;
+	background: aliceblue !important;
 }
 
 .send_btn{
@@ -210,4 +212,8 @@
     border: 3px black solid;
     width: 85%;
     margin-left: 58px;
+}
+
+.msg_container_loading{
+    display: none;
 }

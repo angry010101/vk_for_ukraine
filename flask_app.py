@@ -181,18 +181,43 @@ def execute():
         api = getApi()
     except:
         return redirect(url_for('index'))
+    startLongPolling = 0
+    lastMsgId = 0
+    try:
+        if request.method == "GET":
+            startLongPolling = int(request.args.get('startLongPolling'))
+            lastMsgId = int(request.args.get('lastMsgId'))
+    except Exception:
+        pass
+    dlgsOffset = 0
+    try:
+        if request.method == "GET":
+            dlgsOffset = int(request.args.get('dialogsOffset'))
+    except Exception:
+        pass
     if api is None:
         error = "Authentication error"
         return render_template("index.html",errors=error)
     import execute as e
-    code = 'var c = API.messages.getDialogs(); var b = API.users.get({"user_ids": c@.uid,"fields": "photo_50"}); var a = API.users.get({"fields": "photo_50"}); return {"msgs": c,"users":b,"me": a};'
+    code = ""
+    if startLongPolling == 1:
+        code = 'var a = API.messages.getLongPollServer({"need_pts": 1}); var b = API.messages.getLongPollHistory({"ts": a.ts,"max_msg_id":"' + str(lastMsgId) + '"}); return b;'
+    else:
+        code = 'var c = API.messages.getDialogs({"offset": ' + str(dlgsOffset) + '}); var b = API.users.get({"user_ids": c@.uid,"fields": "photo_50"}); var a = API.users.get({"fields": "photo_50"}); return {"msgs": c,"users":b,"me": a};'
     r = e.execute(a=api,c=code)
     import json
+    if startLongPolling == 1:
+        pass
     return json.dumps(r)
 
 
 @app.route('/gets',methods=["GET"])
 def gets():
+
+    '''
+    code = 'var c = API.messages.getDialogs();  return {"msgs": c};
+    '''
+    u = ""
     try:
         if request.method == "GET":
             u = request.args.get('url')

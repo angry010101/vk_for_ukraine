@@ -4,6 +4,7 @@
 		<link rel="stylesheet" type="text/css" href="/css/im.css">
 		<script>
 		    var __cache = [];
+		    var __cacheUsers = [];
 		    var url_to_replace = "/gets?url=";
 		    var maxcount = 0;
 		    var current_user = [];
@@ -31,13 +32,13 @@
                  ab.style.display = "block";
                  ai.style.display = "block";
             }
+
 			function onComplete(){
-				var x = document.getElementsByClassName("prev_msg_container");
-					if (x.length <= 4) {
-						document.getElementById('end_container').style.display = 'none';
-					}
-                getPrevInfo();
-                newMessagesGetter();
+                getPrevInfo(dialogs_offset);
+                var x = document.getElementsByClassName("prev_msg_container");
+				if (x.length <= 4) {
+					document.getElementById('end_container').style.display = 'none';
+				}
 			}
 
             function clearChatContainer(){
@@ -108,10 +109,19 @@
                     var s_img = document.createElement("img");
                     s_img.className = "main_photo_img";
 
-                    var temp = getInf(__cache["users"],jt[i]["data"]["uid"]);
+                    var temp = getInf(__cacheUsers,jt[i]["data"]["uid"]);
                     if (temp){
                         nspan.innerHTML = temp["first_name"] + " " + temp["last_name"];
                         s_img.src = url_to_replace + temp["photo_50"];
+                    }
+                    else {
+                        if (current_user["id"] == jt[i]["data"]["uid"]){
+                            nspan.innerHTML = current_user["first_name"] + " " + current_user["last_name"];
+                            s_img.src = current_user["photo_50"];
+                        }
+                        else {
+                            //load more users
+                        }
                     }
         /*
                     if (jt[i]["data"]["uid"] == rid){
@@ -185,16 +195,17 @@
                     document.getElementById('msg_container').appendChild(dinp);
                 }
                 startedLoadingMore = false;
+                document.getElementById("msg_container_loading").style.display = "none";
             }
 
-			function getPrevInfo(){
+			function getPrevInfo(dialogsOffset){
                 var xhr = new XMLHttpRequest();
 
 		        xhr.onreadystatechange = function(){
 		          parseMsgInfoPrev(xhr.responseText);
 		          startedUpdating=false;
-		        } ;
-                xhr.open('GET', '/execute?r=' + Math.random(), true);
+		        };
+                xhr.open('GET', '/execute?r=' + Math.random() + "&dialogsOffset=" + dialogsOffset, true);
 
 		        xhr.send();
 /*
@@ -296,8 +307,12 @@
                 var users = jt["users"];
                 var me = jt["me"][0];
                 parseMyPrevInfo(me);
-                if (addedCacheFirstMsgPrev == false) { __cache["users"] = users; addedCacheFirstMsgPrev == true }
+            //    if (addedCacheFirstMsgPrev == false) {
+                __cacheUsers = __cacheUsers.concat(users);
+            //        addedCacheFirstMsgPrev == true }
                 parsePrevMsg(msgs);
+                startedLoadingMoreDlgs = false;
+                newMessagesGetter(msgs[2]["mid"]);
             }
 
 
@@ -312,6 +327,7 @@
             }
 
             function parsePrevMsg(m){
+                dialogs_offset += m.length-1;
                 var c = parseInt(m[0]);
                 var mdivc = document.createElement("div");
                 maxcount = ((c > 20) ? 20 : c);
@@ -321,10 +337,10 @@
                         divElem.innerHTML = "There is no messages there :(";
                         document.getElementById('prev_msg_container').appendChild(divElem);
                 }
-                if (addToOffsetDlg){
+                /*if (addToOffsetDlg){
                     addToOffsetDlg = false;
                     dialogs_offset += maxcount;
-                }
+                }*/
                 for (var i=1;i<=maxcount; i++){
                     var divElem = document.createElement("div");
                     divElem.className = "prev_msg_container";
@@ -351,10 +367,16 @@
                     img1.onerror = function() {
                         this.src = '/images/camera_50.png';
                     }
-
-                    var uinf = getInf(__cache["users"],m[i]["uid"]);
-                    var isrc = uinf["photo_50"];
-                    isrc = isrc.replace("https://vk.com","");
+                    var uinf;
+                    var isrc;
+                    try{
+                        uinf = getInf(__cacheUsers,m[i]["uid"]);
+                        isrc = uinf["photo_50"];
+                        isrc = isrc.replace("https://vk.com","");
+                    }
+                    catch (err){
+                        alert(i + " " + m[i]["body"]);
+                    }
                     //if (m[i]["out"] == "0") {
                         img1.src = ("/images/camera_50.png" != isrc) ? url_to_replace + isrc : isrc;
                     /*}
@@ -407,16 +429,22 @@
 
                     mdivc.appendChild(divElem);
                 }
-                document.getElementById('prev_msg_container').innerHTML = "";
+               // document.getElementById('prev_msg_container').innerHTML = "";
                 document.getElementById('prev_msg_container').appendChild(mdivc);
             }
 
             function getInf(arr,v){
-                for (var i=0; i<maxcount-1; i++){
+                for (var i=0; i<arr.length; i++){
                     if (arr[i]["uid"] == v){
                         return arr[i];
                     }
                 }
+                var rar = [];
+                rar["uid"] = v;
+                rar["photo_50"] = "/images/camera_50.png";
+                rar["first_name"] = "undefined First Name";
+                rar["last_name"] = "undefined Last Name"
+                return rar;
             }
 
             function ctrlEnter(event, formElem){
@@ -428,9 +456,21 @@
 
             var startedUpdating = false;
             var timerId;
-            //fuck angular
-            function newMessagesGetter(){
-                timerId = setInterval(function() { if (startedUpdating == false) { startedUpdating=true; getPrevInfo();}  }, 2000);
+            function newMessagesGetter(startMsg){
+                //timerId = setInterval(function() { if (startedUpdating == false) { startedUpdating=true; getPrevInfo();}  }, 2000);\
+                var xhr = new XMLHttpRequest();
+
+		        xhr.onreadystatechange = function(){
+		          parseMsgLongPoll(xhr.responseText);
+		        };
+                xhr.open('GET', '/execute?r=' + Math.random() + "&startLongPolling=1&lastMsgId=" + startMsg, true);
+
+		        xhr.send();
+            }
+
+            function parseMsgLongPoll(t){
+                var jt = JSON.parse(t);
+                //alert(t);
             }
 
             function stopCallBack(){
@@ -442,8 +482,23 @@
                 var myDiv = document.getElementById("msg_container");
                 if (myDiv.offsetHeight + myDiv.scrollTop >= myDiv.scrollHeight - 100 && !startedLoadingMore) {
                     startedLoadingMore = true;
+                    showMessagesLoading();
                     sel_rec_id(current_dialog["rid"],current_dialog["isChat"],messages_offset);
+                    document.getElementById("msg_container_loading").style.display = "block";
                 }
+            }
+
+            var startedLoadingMoreDlgs = false;
+            function dlgsContainerScroll(t){
+                var myDiv = document.getElementById("prev_msg_container");
+                if (myDiv.offsetHeight + myDiv.scrollTop >= myDiv.scrollHeight - 100 && !startedLoadingMoreDlgs) {
+                    startedLoadingMoreDlgs = true;
+                    getPrevInfo(dialogs_offset);
+                }
+            }
+
+            function showMessagesLoading(){
+
             }
 		</script>
 		<script src="bower_components/angular/angular.js"></script>
@@ -469,7 +524,7 @@
   				<a href="#lalaland" class="expansion">...</a>
 			</div>
 			<div class="content">
-				<div class="container left" id="prev_msg_container">
+				<div class="container left" id="prev_msg_container" onscroll="dlgsContainerScroll(this);">
 					<div id="end_container" class="prev_msg_end_container" >
 						...
 					</div>
