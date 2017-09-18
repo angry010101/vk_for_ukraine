@@ -221,6 +221,28 @@
                                          showAttachmentAlert(this.getAttribute("large"));
                                      }
                                      break;
+                                 case "doc":
+                                     if (typeof a[i1]["doc"]["gift"] != 'undefined'){
+                                         //it's maybe a gift
+                                         var img1 = document.createElement("img");
+                                        img1.setAttribute("large",url_to_replace + a[i1]["photo"]["src_big"]);
+                                         img1.src = url_to_replace + a[i1]["photo"]["src"];
+                                        img1.style.marginLeft = "10px";
+                                        divF.appendChild(img1);
+                                        img1.onclick = function(){
+                                             showAttachmentAlert(this.getAttribute("large"));
+                                        }
+                                     }
+                                     else {
+                                        var a1 = document.createElement("audio");
+                                         a1.setAttribute("controls","");
+                                         var source = document.createElement("source");
+                                         source.src = a[i1]["doc"]["url"];
+                                         source.type = "audio/ogg; codecs=vorbis";
+                                         a1.appendChild(source);
+                                         divF.appendChild(a1);
+                                     }
+                                     break;
                                  default:
                                      break;
                              }
@@ -246,9 +268,6 @@
                 if (startedLongPoll) stopLongPoll();
 
 		        xhr.onreadystatechange = function(){
-		            if(!startedLongPoll){
-                        startLongPoll(1,oldTs);
-                    }
 		            parseLoadingUsers(xhr.responseText);
 		        };
                 xhr.open('GET', '/getUsers?r=' + Math.random() + "&uids=" + arr.join(), true);
@@ -804,9 +823,14 @@
 								<div class="top_msg_textarea">
 
 								</div>
-								<textarea type="text" id="msgtxt" name="msg" placeholder="Your message..."></textarea>
-								<div class="send_btn">
-									<input type="submit" name="sbm" value="send" class="send_btn_input" onclick="sendMsg(document.getElementById('rec_id').value,document.getElementById('msgtxt').value); return false;">
+
+					            <div class="dlg_user_actions"></div>
+								<div>
+								    <textarea type="text" id="msgtxt" name="msg" placeholder="Your message..."></textarea>
+
+								    <div class="send_btn">
+								    	<input type="submit" name="sbm" value="send" class="send_btn_input" onclick="sendMsg(document.getElementById('rec_id').value,document.getElementById('msgtxt').value); return false;">
+								    </div>
 								</div>
 								<input type="hidden" id="rec_id" name="recipient_id" >
 								<div class="msg_tools">

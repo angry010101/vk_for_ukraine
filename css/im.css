@@ -127,6 +127,14 @@
 
 }
 
+.dlg_user_actions {
+    width: 100%;
+    height: 16px;
+    border-top: 3px black solid;
+    border-bottom: 3px black solid;
+    background-color: black;
+}
+
 .main_msg_content {
 	display: inline-block;
 	vertical-align: top;
@@ -174,7 +182,7 @@
 
 .send_msg_block {
 	background-color: #ecf0ff !important ;
-	position: sticky;
+	position: absolute;
 	min-height: 96px;
 	height: 96px;
 	width: 100%;
@@ -190,7 +198,7 @@
 	min-height: 20px;
 	resize: none;
 	margin-left: 14px;
-	height: calc(100% - 28px);
+	height: calc(100% - 58px);
 	bottom: 24px;
 	position: absolute;
 }
@@ -220,7 +228,7 @@
 }
 
 .send_btn_input{
-	height: 100%;
+	//height: 100%;
 }
 
 .main_msg_img_wrapper{
