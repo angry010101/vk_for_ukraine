@@ -170,7 +170,7 @@ def getusers():
             ulist = form["user_ids"];
     except Exception:
         return "exception"
-    r = api.users.get(user_ids=ulist,fields="photo_50")
+    r = api.users.get(user_ids=ulist,fields="photo_50,online")
     import json
     return json.dumps(r)
 
@@ -182,11 +182,11 @@ def execute():
     except:
         return redirect(url_for('index'))
     startLongPolling = 0
-    lastMsgId = 0
+    ts = 0
     try:
         if request.method == "GET":
             startLongPolling = int(request.args.get('startLongPolling'))
-            lastMsgId = int(request.args.get('lastMsgId'))
+            ts = int(request.args.get('ts'))
     except Exception:
         pass
     dlgsOffset = 0
@@ -199,13 +199,35 @@ def execute():
         error = "Authentication error"
         return render_template("index.html",errors=error)
     import execute as e
+    import json
+    import requests
     code = ""
     if startLongPolling == 1:
-        code = 'var a = API.messages.getLongPollServer({"need_pts": 1}); var b = API.messages.getLongPollHistory({"ts": a.ts,"max_msg_id":"' + str(lastMsgId) + '"}); return b;'
+        code = 'var a = API.messages.getLongPollServer({"need_pts": 1}); return a;'
+        r = e.execute(a=api,c=code)
+        session["lpserver"] = str(r["server"])
+        session["lpkey"] = str(r["key"])
+        session["lpts"] = str(r["ts"])
+        url = "https://" + str(r["server"]) + "?act=a_check&key=" + str(r["key"]) + "&ts=" + str(r["ts"]) +"&wait=25&mode=2&version=2";
+        quotes = requests.get(url)
+        contents_file = quotes.text
+        return str(contents_file)
+        '''code = 'var b = API.messages.getLongPollHistory({"ts":' + str(r["ts"]) + ',"max_msg_id":' + str(lastMsgId) + '}); return b;'''
+    elif startLongPolling == 2:
+        ts = session["lpts"]
+        try:
+            if request.method == "GET":
+                ts = int(request.args.get('ts'))
+        except Exception:
+            pass
+        session["lpts"] = ts
+        url = "https://" + session["lpserver"] + "?act=a_check&key=" + session["lpkey"] + "&ts=" + str(ts) +"&wait=25&mode=2&version=2";
+        quotes = requests.get(url)
+        contents_file = quotes.text
+        return str(contents_file)
     else:
-        code = 'var c = API.messages.getDialogs({"offset": ' + str(dlgsOffset) + '}); var b = API.users.get({"user_ids": c@.uid,"fields": "photo_50"}); var a = API.users.get({"fields": "photo_50"}); return {"msgs": c,"users":b,"me": a};'
+        code = 'var c = API.messages.getDialogs({"offset":' + str(dlgsOffset) + '}); var b = API.users.get({"user_ids": c@.uid,"fields": "photo_50,online"}); var a = API.users.get({"fields": "photo_50"}); return {"msgs": c,"users":b,"me": a};'
     r = e.execute(a=api,c=code)
-    import json
     if startLongPolling == 1:
         pass
     return json.dumps(r)
@@ -246,6 +268,29 @@ def logout():
     apiArray.pop(session["login"])
     session.pop('login', None)
     return "OK"
+
+@app.route('/getUsers',methods=["GET"])
+def getUsers():
+    api = None
+    import execute as e
+    import json
+    try:
+        api = getApi()
+    except:
+        return redirect(url_for('index'))
+    uids = ""
+    try:
+        if request.method == "GET":
+            uids = str(request.args.get('uids'))
+    except:
+        return "err"
+    if api is None:
+        error = "Authentication error"
+        return render_template("index.html",errors=error)
+    code = 'var c = API.users.get({"user_ids": "' + uids + '"}); return c;'
+    r = e.execute(a=api,c=code)
+    return json.dumps(r)
+
 
 
 app.secret_key = 'F13Zr47j\3yX R~X@@H(jmM]Lwf/,?KT'

@@ -1,6 +1,7 @@
 body {
 	margin: 0 auto;
 	background-color: #E6F3F7;
+	overflow: hidden;
 }
 
 
@@ -8,7 +9,11 @@ body div {
 	background-color: #3C99B4;
 }
 
-
+img {
+ max-width: 100%;
+ height: auto;
+ width: auto; /* ie8 */
+}
 
 .alert_info{
     width: 100%;
@@ -39,8 +44,8 @@ body div {
 }
 
 .main {
-	min-width: 850px;
-	max-width: 1010px;
+	width: 100%;
+    max-width: 1000px;
 	margin: 0 auto;
 	text-align: center;
 }
@@ -49,6 +54,7 @@ body div {
 	text-align: left;
 	height: 32px;
 	padding: 4px;
+	min-width: 112px;
 }
 
 .main_header img{
@@ -62,8 +68,10 @@ body div {
 .main_header .logo_text{
 	font-size: 20px;
 	color: white;
-	margin-left: 8px;
+	margin-left: 4px;
 	font-family: sans-serif;
+	display: inline-block;
+    vertical-align: top;
 }
 
 .main_header .logo_img{
@@ -84,11 +92,16 @@ body div {
 
 .main_header .main_content {
 	display: inline-block;
+
 }
 
 .nav_menu {
-	height: 36px;
-	overflow: hidden;
+	height: 54px;
+    overflow-y: hidden;
+    overflow-x: scroll;
+    min-width: 40px;
+    display: flex;
+    margin-bottom: -18px;
 }
 
 
@@ -128,4 +141,10 @@ body div {
 	height: 48px;
 	left: 0;
 	bottom: 0;
+}
+
+@media screen and (min-width:40px) and (max-width:128px) {
+    .profile_img {
+        display: none;
+    }
 }
