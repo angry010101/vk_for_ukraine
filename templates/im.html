@@ -3,11 +3,11 @@
 		<link rel="stylesheet" type="text/css" href="/css/main.css">
 		<link rel="stylesheet" type="text/css" href="/css/im.css">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+        <script src="https://gitlab.com/meno/dropzone/-/jobs/19123676/artifacts/file/dist/dropzone.js"></script>
 		<script>
 		    var __cache = [];
 		    var __cacheUsers = [];
-		    var url_to_replace = "/gets?url=";
+		    var url_to_replace = "https://vkuk.000webhostapp.com/getcontent.php?url=";
 		    var maxcount = 0;
 		    var current_user = [];
 		    var current_dialog = [];
@@ -16,16 +16,21 @@
             var oldTs=0;
             var selectedDlgUserId=0;
 
-            var xhrLP;
+
+           // var additionalUserIds = []; var loadMoreUsers=0;
+
+
+            var lastMsgId = 0;
+            var xhrLP,xhrLPH;
             var startedLongPoll = false;
             function startLongPoll(s,ts){
                 startedLongPoll = true;
-                newMessagesGetter(s,ts);
+               // newMessagesGetter(s,ts);
             }
 
             function stopLongPoll(){
                 startedLongPoll = false;
-                xhrLP.abort();
+              //  xhrLP.abort();
             }
 
 
@@ -63,9 +68,36 @@
 			    document.getElementById("msg_container").innerHTML = "";
             }
 
+            function setDlgUserAction(s){
+                document.getElementById("dlg_user_action").innerHTML = s;
+            }
+
 			function sel_rec_id(rid,isChat,offset){
                 document.getElementById('rec_id').value = rid;
+                document.getElementById('isChat').value = isChat;
+
                 selectedDlgUserId = rid;
+
+
+                var t = getInf(__cacheUsers,rid);
+                if (isChat != "1") {
+                    if (t["online"] != "0"){
+                        setDlgUserAction("");
+                    }
+                    else {
+                        setDlgUserAction(t["first_name"] + " offline");
+                    }
+                }
+                else {
+                    if (offset==0){
+                        rid = parseInt(rid);
+                        rid = rid + "";
+                    }
+                }
+
+                if (isChat == 1 && offset == 0){ // Fix!!
+                    loadChatUsers(rid);
+                }
 
                 if (current_dialog["rid"] !== rid) {
                     messages_offset = 0;
@@ -77,10 +109,7 @@
                 current_dialog["rid"] = rid;
                 current_dialog["offset"] = offset;
 
-                if (isChat == "1") {
-                    rid = rid + 2000000000;
-                }
-                var params = "uid=" + encodeURIComponent(rid) + "&offset=" + encodeURIComponent(offset);
+                var params = "uid=" + encodeURIComponent(rid) + "&offset=" + encodeURIComponent(offset) + "&isChat=" + encodeURIComponent(isChat);
                 if (startedLongPoll) stopLongPoll();
                 var xhr = new XMLHttpRequest();
 
@@ -94,15 +123,39 @@
                         if (!startedLongPoll){
                             startLongPoll(1,oldTs);
                         }
-		                parseMsgResponse(xhr.responseText,rid);
+		                parseMsgResponse(xhr.responseText,rid,isChat);
                     }
                 }
 
             }
 
-    		function parseMsgResponse(t,rid){
+            var timerLPH;
+            function loadChatUsers(cid){
+                var params = "cid=" + encodeURIComponent(cid);
+                if (startedLongPoll) stopLongPoll();
+                var xhr = new XMLHttpRequest();
+
+                xhr.open('POST', '/getChat', true);
+                xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                // 3. Отсылаем запрос
+                xhr.send(params);
+
+                xhr.onreadystatechange = function(){
+                    if(xhr.readyState == 4){
+		                parseGetChatResponse(xhr.responseText,cid);
+                    }
+                }
+            }
+
+            function parseGetChatResponse(t,cid){
                 var jt =  JSON.parse(t);
-                var additionalUserIds = []; var loadMoreUsers=0;
+                var c = jt["chat"];
+                var cu = jt["chat_users"];
+                __cacheUsers = __cacheUsers.concat(cu);
+            }
+
+    		function parseMsgResponse(t,rid,isChat){
+                var jt =  JSON.parse(t);
                 var c = parseInt(jt[0]["data"]);
                 maxcount = ((c > 20) ? 20 : c);
 
@@ -110,7 +163,23 @@
                   //  addToOffsetMsg = false;
                     messages_offset += maxcount;
                 //}
+
+               // lastMsgId = jt[1]["data"]["mid"];
+
+
                 for (var i=1;i<=maxcount; i++){
+                    addMsgToDlg(jt[i]["data"]);
+                }
+                /*if (loadMoreUsers>0){
+                    loadMoreUsers = 0;
+                    loadUsers(additionalUserIds);
+                }*/
+                startedLoadingMore = false;
+
+               // document.getElementById("msg_container_loading").style.display = "none";
+            }
+
+            function addMsgToDlg(m,pos=2){
                     var dinp = document.createElement("div");
                     dinp.className = "msg_container";
 
@@ -125,12 +194,12 @@
 
                     var divM = document.createElement("div");
                     divM.className = "main_msg_text";
-                    divM.innerHTML = jt[i]["data"]["body"];
+                    divM.innerHTML = m["body"];
 
                     var dspan = document.createElement("span");
                     dspan.className = "main_date_text";
 
-                    var dstr = parseInt(jt[i]["data"]["date"])*1000;
+                    var dstr = parseInt(m["date"])*1000;
                     dspan.innerHTML = formatDate(new Date(dstr));
 
                     var nspan = document.createElement("span");
@@ -142,19 +211,21 @@
 
 
 
-                    var temp = getInf(__cacheUsers,jt[i]["data"]["uid"]);
-                    if (current_user["id"] == jt[i]["data"]["uid"]){
+                    var temp = getInf(__cacheUsers,m["uid"]);
+                    if (current_user["uid"] == m["uid"]){
                             nspan.innerHTML = current_user["first_name"] + " " + current_user["last_name"];
                             s_img.src = current_user["photo_50"];
                     }
                     else {
                         if (temp){
                             nspan.innerHTML = temp["first_name"] + " " + temp["last_name"];
-                            s_img.src = (jt[i]["data"]["uid"] == current_user["id"]) ? temp["photo_50"] : url_to_replace + temp["photo_50"];
+                            s_img.src = (m["uid"] == current_user["uid"]) ? temp["photo_50"] : url_to_replace + temp["photo_50"];
                         }
                         else {
-                            additionalUserIds.push(jt[i]["data"]["uid"]);
-                            loadMoreUsers++;
+                           /* if (!additionalUserIds.includes(m["uid"])){
+                                additionalUserIds.push(m["uid"]);
+                            }
+                            loadMoreUsers++;*/
                             //load more users
                             //loadUsers(jt[i]);
                         }
@@ -194,19 +265,19 @@
                     dinp.appendChild(divO);
                     dinp.appendChild(divElem);
 
-                    if (typeof jt[i]["data"]["fwd_messages"] != 'undefined'){
-                        var a = jt[i]["data"]["fwd_messages"];
+                    if (typeof m["fwd_messages"] != 'undefined'){
+                        var a = m["fwd_messages"];
                         for (var i1=0; i1<a.length; i1++){
-                             var divF = document.createElement("div");
-                             divF.className = "msg_attachments";
-                             divF.innerHTML = a[i1]["body"];
-                             divI.appendChild(document.createElement("br"));
+                            var divF = document.createElement("div");
+                            divF.className = "msg_attachments";
+                            divF.innerHTML = a[i1]["body"];
+                            divI.appendChild(document.createElement("br"));
                             divI.appendChild(divF);
                         }
                     }
 
-                    if (typeof jt[i]["data"]["attachments"] != 'undefined'){
-                        var a = jt[i]["data"]["attachments"];
+                    if (typeof m["attachments"] != 'undefined'){
+                        var a = m["attachments"];
                         var divF = document.createElement("div");
                         divF.className = "msg_attachments";
                         for (var i1=0; i1<a.length; i1++){
@@ -237,7 +308,7 @@
                                         var a1 = document.createElement("audio");
                                          a1.setAttribute("controls","");
                                          var source = document.createElement("source");
-                                         source.src = a[i1]["doc"]["url"];
+                                         source.src = url_to_replace + a[i1]["doc"]["url"];
                                          source.type = "audio/ogg; codecs=vorbis";
                                          a1.appendChild(source);
                                          divF.appendChild(a1);
@@ -250,15 +321,18 @@
                         divI.appendChild(document.createElement("br"));
                         divI.appendChild(divF);
                     }
-
-                    document.getElementById('msg_container').appendChild(dinp);
-                }
-                if (loadMoreUsers>0){
-                    loadMoreUsers = 0;
-                    loadUsers(additionalUserIds);
-                }
-                startedLoadingMore = false;
-               // document.getElementById("msg_container_loading").style.display = "none";
+                    var msgct = document.getElementById('msg_container');
+                    if (pos == 1){
+                        try{
+                            msgct.insertBefore(dinp,msgct.getElementsByClassName("msg_container")[0]);
+                        }
+                        catch (e){
+                            msgct.appendChild(dinp);
+                        }
+                    }
+                    else {
+                        msgct.appendChild(dinp);
+                    }
             }
 
             function loadUsers(arr){
@@ -276,7 +350,9 @@
             }
 
             function parseLoadingUsers(t){
-                    console.log(t);
+            /*    additionalUserIds = [];
+                var jt = JSON.parse(t);
+                __cacheUsers.concat(jt);*/
             }
 
 
@@ -289,9 +365,6 @@
 
 		        xhr.onreadystatechange = function(){
 
-                    if (!startedLongPoll){
-                        startLongPoll(1,oldTs);
-                    }
                   parseMsgInfoPrev(xhr.responseText);
 		          startedUpdating=false;
 		        };
@@ -309,8 +382,8 @@
                 }*/
 			}
 
-			function sendMsg(id,txt){
-                var params = "msg=" + encodeURIComponent(txt) + "&toid=" + encodeURIComponent(parseInt(id));
+			function sendMsg(id,txt,isChat){
+                var params = "msg=" + encodeURIComponent(txt) + "&toid=" + encodeURIComponent(parseInt(id)) + "&isChat=" + encodeURIComponent(parseInt(isChat)) ;
 			    var xhr = new XMLHttpRequest();
 			    stopLongPoll();
 
@@ -324,13 +397,24 @@
                         startLongPoll(1,oldTs);
                     }
                 }
+
 			}
 
 			function parseSendMsgResponse(r,txt,id){
 			   if (typeof parseInt(r) !== "undefined"){
 			       //OK
-			       addMsg(r,txt,current_user);
+			        addMsg(r,txt,current_user);
+
+			        m = [];
+                    m["body"] = txt;
+                    m["uid"] = id;
+                    m["mid"] = r;
+                    m["date"] = "444444444";
+                    var i = checkAddedMsgById(m["uid"]);
+                    updatePrevMsg(m,i);
+                    upPrevMsg(i);
 			       document.getElementById("msgtxt").value="";
+
 			   }
 			   else {
 			       addMsg(-r,txt,current_user);
@@ -343,6 +427,7 @@
                     var dinp = document.createElement("div");
                     dinp.className = "msg_container";
 
+			        if (r<0) dinp.style.color = "red";
                     var divElem = document.createElement("div");
                     divElem.className = "main_msg_container";
 
@@ -370,7 +455,7 @@
                     s_img.src = u["photo_50"];
 
                     if (u["online"] != "0"){
-                        setOnline(s_img,1);
+                        setOnline(s_img,1,u["uid"]); //////
                     }
 
                     var divO = document.createElement("div");
@@ -422,21 +507,24 @@
             function parseMyPrevInfo(me){
                 current_user["first_name"] = me["first_name"];
 		        current_user["last_name"] = me["last_name"];
-		        current_user["id"] = me["uid"];
+		        current_user["uid"] = me["uid"];
 		        current_user["online"] = me["online"];
 
 		        current_user["photo_50"] = ("/images/camera_50.png" != me["photo_50"]) ? url_to_replace + me["photo_50"] : me["photo_50"];
 		        document.getElementById("my_img").src = current_user["photo_50"];
             }
 
-            function setOnline(img,st){
+            function setOnline(img,st,id){
+                    var user =  getInf(__cacheUsers,id);
                     if (st == 1 || st == "1"){
                         img.style.borderColor = "green";
                         img.style.backgroundColor = "#26f326";
+                        user["online"] = "1";
                     }
                     if (st == 0 || st == "0"){
                         img.style.borderColor = "#adadad";
                         img.style.backgroundColor = "white";
+                        user["online"] = "0";
                     }
             }
 
@@ -456,10 +544,7 @@
                     divT.innerHTML = m["body"];
 
                     if (parseInt(m["read_state"]) == 0 && parseInt(m["out"]) != 1){
-                        divElem.style.backgroundColor = "#a5ebec";
-                        divH.style.backgroundColor = "#a5ebec";
-                        divC.style.backgroundColor = "#a5ebec";
-                        divT.style.backgroundColor = "#a5ebec";
+                        divElem.style.backgroundColor = "rgb(186, 211, 244)";
                     }
 
                     //TODO: check if chat
@@ -482,7 +567,7 @@
                         isrc = uinf["photo_50"];
                         isrc = isrc.replace("https://vk.com","");
                         if (uinf["online"] != "0"){
-                            setOnline(img1,1);
+                            setOnline(img1,1,m["uid"]);
                         }
                     }
                     catch (err){
@@ -504,11 +589,19 @@
                         divT.innerHTML += "<span style='color: blue'>Attachments</span>"
                     }
 
+                    if (m["read_state"] == "0" && m["out"] == "1"){
+                        divT.style.backgroundColor = "#e0e6e0";
+                    }
+
+                    if (m["out"] == "1"){
+                        divT.innerHTML = "You: " + divT.innerHTML;
+                    }
+
                     if (typeof m["chat_id"] !== 'undefined'){
                         nspan.innerHTML = m["title"];
 
                         did.className = "user_id";
-                        did.innerHTML = m["chat_id"];
+                        did.innerHTML = parseInt(m["chat_id"]) +2000000000;
                         did.setAttribute("isChat","1");
                     }
                     else {
@@ -559,6 +652,13 @@
                     addToOffsetDlg = false;
                     dialogs_offset += maxcount;
                 }*/
+                if (lastMsgId==0) {
+                    lastMsgId = m[1]["mid"];
+                    startLPH();
+                }
+
+
+
                 for (var i=1;i<=maxcount; i++){
                     var t = addMsgPrev(m[i]);
                     mdivc.id = "msg_container_" + dialogs_offset;
@@ -586,7 +686,7 @@
                         return arr[i];
                     }
                 }
-                if (v == current_user["id"]){
+                if (v == current_user["uid"]){
                     return current_user;
                 }
                 /*var rar = [];
@@ -599,7 +699,63 @@
 
             function ctrlEnter(event, formElem){
                 if((event.ctrlKey) && ((event.keyCode == 0xA)||(event.keyCode == 0xD))){
-                    sendMsg(document.getElementById('rec_id').value,document.getElementById('msgtxt').value);
+                    sendMsg(document.getElementById('rec_id').value,document.getElementById('msgtxt').value,document.getElementById('isChat').value);
+                }
+            }
+
+            function startLPH(){
+                timerLPH = setTimeout(function startLongPollHistory(m){
+                xhrLPH = new XMLHttpRequest();
+                xhrLPH.open('POST', '/LPhistory', true);
+                var params = "max_msg_id=" + encodeURIComponent(m);
+
+                xhrLPH.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                // 3. Отсылаем запрос
+                xhrLPH.send(params);
+
+                xhrLPH.onreadystatechange = function(){
+                    if(xhrLPH.readyState == 4){
+                        if (!startedLongPoll){
+                            startLongPoll(1,oldTs);
+                        }
+		                //alert(xhrLPH.responseText);
+		                parseLPHResponse(xhrLPH.responseText);
+		                xhrLPH = null;
+		               // timerLPH = setTimeout( startLongPollHistory(m) ,5000);
+		                timerLPH = setTimeout( startLPH() ,5000);
+
+                    }
+                }
+                },3000,lastMsgId);
+
+            }
+
+
+            function parseLPHResponse(t){
+                var jt =  JSON.parse(t);
+                var msgs = jt["messages"];
+                var mc = parseInt(msgs[0]);
+                if (mc != 0) lastMsgId = msgs[mc]["mid"];
+                for (var i=1;i<=mc;i++){
+                    m = msgs[i];
+                    var i1;
+                    if (typeof m["chat_id"] != 'undefined'){
+                        //update chat
+                        i1 = checkAddedMsgById(parseInt(m["chat_id"])+2000000000);
+                    }
+                    else {
+                        i1 = checkAddedMsgById(m["uid"]);
+                    }
+                    if (i1) {
+                        updatePrevMsg(m,i1);
+                        upPrevMsg(i1);
+                    }
+                    else {
+                        addMsgPrev(m);
+                    }
+                    if ((current_dialog["rid"]==m["uid"] || parseInt(current_dialog["rid"]) == parseInt(m["chat_id"])+2000000000)&& m["out"] != "1"){
+                        addMsgToDlg(m,1);
+                    }
                 }
             }
 
@@ -634,7 +790,7 @@
                                     n = -n;
                                     var i = checkAddedMsgById(n);
                                     if (i){
-                                        setOnline(i.getElementsByClassName("photo_img")[0],1);
+                                        setOnline(i.getElementsByClassName("photo_img")[0],1,n);
                                     }
                                     break
                                 case 9:
@@ -643,7 +799,7 @@
                                     n = -n;
                                     var i = checkAddedMsgById(n);
                                     if (i){
-                                        setOnline(i.getElementsByClassName("photo_img")[0],0);
+                                        setOnline(i.getElementsByClassName("photo_img")[0],0,n);
                                     }
                                     break
                                 case 4:
@@ -655,17 +811,8 @@
                                     m["date"] = updates[i][4];
                                     var i = checkAddedMsgById(m["uid"]);
                                     if (i) {
-                                        i.getElementsByClassName("prev_date_text")[0].innerHTML = formatDate(new Date(parseInt(m["date"])*1000));
-                                        i.getElementsByClassName("prev_msg_text")[0].innerHTML = m["body"];
-                                        var ti = i;
-                                        i.remove();
-                                        var mc = document.getElementById("msg_container_20");
-                                        try{
-                                            mc.insertBefore(ti,mc.getElementsByClassName("prev_msg_container")[0]);
-                                        }
-                                        catch(e){
-                                            mc.append(ti);
-                                        }
+                                        updatePrevMsg(m,i);
+                                        upPrevMsg(i)
                                     }
                                     else {
                                         addMsgPrev(m);
@@ -714,6 +861,39 @@
 		        xhrLP.send();
             }
 
+
+            function updatePrevMsg(m,i){
+                i.getElementsByClassName("prev_date_text")[0].innerHTML = formatDate(new Date(parseInt(m["date"])*1000));
+
+                var msg_txt = i.getElementsByClassName("prev_msg_text")[0];
+
+                i.getElementsByClassName("prev_msg_text")[0].innerHTML = m["body"];
+                if (m["out"] == "1"){
+                    msg_txt.innerHTML = "You: " + msg_txt.innerHTML;
+                }
+                else {
+                }
+                if (typeof m["attachments"] != 'undefined'){
+                    msg_txt.innerHTML + '<span style="color: blue"> Forwarded messages</span>';
+                }
+                if (typeof m["attachments"] != 'undefined'){
+                    msg_txt.innerHTML + '<span style="color: blue"> Attachments</span>';
+                }
+            }
+
+            function upPrevMsg(i){
+                var ti = i;
+                i.remove();
+                var mc = document.getElementById("msg_container_20");
+                try{
+                    mc.insertBefore(ti,mc.getElementsByClassName("prev_msg_container")[0]);
+                }
+                catch(e){
+                    mc.append(ti);
+                }
+            }
+
+
             function checkAddedMsgById(id){
                 var x = document.getElementsByClassName("prev_msg_container");
                 for (var i=0;i<x.length; i++) {
@@ -759,13 +939,18 @@
             }
 
             function formatDate(d){
-                var dformat = ("00" + (d.getMonth() + 1)).slice(-2) + "/" +
-                    ("00" + d.getDate()).slice(-2) + "/" +
-                    d.getFullYear() + " " +
-                    ("00" + d.getHours()).slice(-2) + ":" +
+                var cdate = new Date();
+                var dformat = "";
+                if (d.getDate() == cdate.getDate() && d.getMonth() == cdate.getMonth()){
+                    return ("00" + d.getHours()).slice(-2) + ":" +
                     ("00" + d.getMinutes()).slice(-2) + ":" +
-                    ("00" + d.getSeconds()).slice(-2)
-               return dformat;
+                    ("00" + d.getSeconds()).slice(-2);
+                }
+                else {
+                    return ("00" + d.getDate()).slice(-2) + "/" +
+                    ("00" + (d.getMonth() + 1)).slice(-2)
+                }
+                return dformat;
             }
 		</script>
 		<script>
@@ -805,6 +990,7 @@
 				<a href="#home">Messages</a>
   				<a href="#contact">Contact</a>
   				<a href="#about">About</a>
+  				<a href="/logout">Logout</a>
   				<a href="#lalaland" class="expansion">...</a>
 			</div>
 			<div class="content">
@@ -823,17 +1009,21 @@
 								<div class="top_msg_textarea">
 
 								</div>
-
-					            <div class="dlg_user_actions"></div>
+					            <div class="dlg_user_actions" id="dlg_user_action"></div>
 								<div>
-								    <textarea type="text" id="msgtxt" name="msg" placeholder="Your message..."></textarea>
-
+								    <textarea type="text" id="msgtxt" name="msg" placeholder="Your message..." style="font-size: 16px;"></textarea>
 								    <div class="send_btn">
-								    	<input type="submit" name="sbm" value="send" class="send_btn_input" onclick="sendMsg(document.getElementById('rec_id').value,document.getElementById('msgtxt').value); return false;">
+								    	<input type="submit" name="sbm" value="send" class="send_btn_input" onclick="sendMsg(document.getElementById('rec_id').value,document.getElementById('msgtxt').value,document.getElementById('isChat').value); return false;">
 								    </div>
 								</div>
 								<input type="hidden" id="rec_id" name="recipient_id" >
+								<input type="hidden" id="isChat">
+							</form>
+							<form action="/file_upload" class="dropzone" enctype="multipart/form-data" method="post" id="file_uploader">
 								<div class="msg_tools">
+								    <div class="attach_file">
+                                        <input name="file" class="attach_file_input" type="file" multiple onchange="document.getElementById('file_uploader').submit();"/>
+                                    </div>
 								</div>
 							</form>
 						</div>

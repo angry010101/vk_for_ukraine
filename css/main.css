@@ -6,7 +6,6 @@ body {
 
 
 body div {
-	background-color: #3C99B4;
 }
 
 img {
@@ -55,6 +54,7 @@ img {
 	height: 32px;
 	padding: 4px;
 	min-width: 112px;
+	background-color: #3C99B4;
 }
 
 .main_header img{
@@ -99,9 +99,11 @@ img {
 	height: 54px;
     overflow-y: hidden;
     overflow-x: scroll;
+    -webkit-overflow-scrolling: touch;
     min-width: 40px;
     display: flex;
     margin-bottom: -18px;
+	background-color: #3C99B4;
 }
 
 

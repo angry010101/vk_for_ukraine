@@ -1,10 +1,10 @@
-
 # A very simple Flask Hello World app for you to get started with...
 
 from flask import Flask, render_template, request, url_for, redirect
 import vk, cgi
 import base64
 from flask import session
+import json
 
 app = Flask(__name__)
 app.config["DEBUG"] = True
@@ -22,7 +22,7 @@ def getApi():
         '''api = vk.API(auth.startauth())'''
     except:
         try:
-            s= vk.AuthSession('6121793', session["login"], session["password"],scope='wall, messages')
+            s= vk.AuthSession('6121793', session["login"], session["password"],scope='photos, wall, messages')
             api = vk.API(s)
             apiArray.update([(session["login"], api)])
         except:
@@ -85,8 +85,9 @@ def im():
             form = request.form
             m = form["msg"]
             rid = form["toid"]
-            msgid = send.sendMsg(api=api,msg=m,recid=rid)
-            return 'OK'
+            isc = form["isChat"]
+            msgid = send.sendMsg(api=api,msg=m,recid=rid,isChat=isc)
+            return msgid
         except Exception:
             return 'error'
     #frarr = api.friends.get(fields="uid, first_name, last_name, photo")
@@ -105,14 +106,17 @@ def getmsgs():
         return render_template("index.html",errors=error)
     m = None;
     o = None;
+    isChat = 0;
     try:
         if request.method == "POST":
             form = request.form
             m = form["uid"]
             o = form["offset"]
+            isChat = form["isChat"]
     except Exception:
         return "exception"
     m = m + ""
+    msg = None
     msg = api.messages.getHistory(user_id=m,offset=o)
     import json
     def json_list(list):
@@ -122,8 +126,69 @@ def getmsgs():
             d['data']=pn
             lst.append(d)
         return json.dumps(lst)
-
     return json_list(msg)
+
+@app.route('/getChat',methods=["GET","POST"])
+def getChat():
+    api = None
+    try:
+        api = getApi()
+    except:
+        return redirect(url_for('index'))
+    if api is None:
+        error = "Authentication error"
+        return render_template("index.html",errors=error)
+    m = None
+    try:
+        if request.method == "POST":
+            form = request.form
+            m = form["cid"]
+    except Exception:
+        return "exception"
+    import execute as e
+    code = 'var b = API.messages.getChat({"chat_id": ' + str(int(m)-2000000000) + '}); var c  = API.users.get({"user_ids": b.users,"fields": "photo_50,online"});  return {"chat": b, "chat_users": c};'
+    msg = e.execute(a=api,c=code)
+    return json.dumps(msg)
+
+@app.route('/LPhistory',methods=["GET","POST"])
+def lph():
+    api = None
+    try:
+        api = getApi()
+    except:
+        return redirect(url_for('index'))
+    if api is None:
+        error = "Authentication error"
+        return render_template("index.html",errors=error)
+    m = None
+
+    if session["lpts"] == None or session["lpts"]=="":
+        import execute as e
+        code = 'var a = API.messages.getLongPollServer({"need_pts": 1}); return a;'
+        r = e.execute(a=api,c=code)
+        session["lpts"] = str(r["ts"])
+
+    lpts = session["lpts"]
+    lpfields = "photo,photo_medium_rec,sex,online,screen_name";
+    try:
+        if request.method == "POST":
+            form = request.form
+            m = form["max_msg_id"]
+    except Exception:
+        return "exception"
+    '''m = (int)(m)-2'''
+    m = (str)(m) + ""
+    msg = api.messages.getLongPollHistory(ts=lpts,max_msg_id=m,fields=lpfields);
+    import json
+    def json_list(list):
+        lst = []
+        for pn in list:
+            d = {}
+            d['data']=pn
+            lst.append(d)
+        return json.dumps(lst)
+
+    return json.dumps(msg)
 
 @app.route('/getmsgprev',methods=["GET","POST"])
 def getmsgsprev():
@@ -249,6 +314,7 @@ def gets():
     r = urllib2.urlopen(u)
     return r.read()
 
+
 @app.route('/offline',methods=["GET"])
 def offline():
     api = None
@@ -267,13 +333,13 @@ def offline():
 def logout():
     apiArray.pop(session["login"])
     session.pop('login', None)
-    return "OK"
+    return redirect(url_for('index'))
 
 @app.route('/getUsers',methods=["GET"])
 def getUsers():
     api = None
     import execute as e
-    import json
+
     try:
         api = getApi()
     except:
@@ -286,14 +352,35 @@ def getUsers():
         return "err"
     if api is None:
         error = "Authentication error"
-        return render_template("index.html",errors=error)
+        return redirect(url_for('index'),errors=error)
     code = 'var c = API.users.get({"user_ids": "' + uids + '"}); return c;'
     r = e.execute(a=api,c=code)
     return json.dumps(r)
 
+@app.route('/file_upload',methods=["POST","GET"])
+def fUpload():
+    api = None
+    try:
+        api = getApi()
+    except:
+        return redirect(url_for('index'))
+    upserv = api.photos.getMessagesUploadServer();
+
+
+    form = cgi.FieldStorage()
+    r = form.getvalue('file')
+
+    from urllib.parse import urlencode
+    from urllib.request import Request, urlopen
+
+    url = upserv["upload_url"]
+    post_fields = {'photo': r}
+
+    request = Request(url, urlencode(post_fields).encode())
+    json1 = urlopen(request).read().decode()
+
+    return json.dumps(json1)
+
 
 
 app.secret_key = 'F13Zr47j\3yX R~X@@H(jmM]Lwf/,?KT'
-
-
-

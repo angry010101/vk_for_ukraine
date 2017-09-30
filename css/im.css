@@ -1,5 +1,5 @@
 .content {
-	height: 82%;
+	height: 86%;
 
 	/*
 	height: -moz-calc(100% - 96px);
@@ -16,7 +16,7 @@
 }
 
 .content div {
-	background-color: white;
+
 }
 
 .container{
@@ -28,24 +28,28 @@
 	overflow-y: scroll;
 	width: 324px;
 	background-color: white;
+
+    -webkit-overflow-scrolling: touch;
 }
 
 .right {
 	width: 76%;
 	position: relative;
-	background-color: white;
+	background-color: #fcfcfc;
 }
 
 .prev_msg_container {
-	background-color: white;	/* #d6e1ec */
-	margin-left: 4px;
+	background-color: #fcfcfc;	/* #d6e1ec */
+	border-bottom: 3px #a6b2cc solid;
 	padding: 6px;
 }
 
 .prev_msg_container .photo_img{
-	width: 36px;
-	height: 36px;
+	width: 42px;
+	height: 42px;
+	border-radius: 25px;
 	background-position: center;
+
 	background-image: url("/images/photo_50.png");
 	border: 4px double #adadad;
 }
@@ -56,7 +60,7 @@
 
 .prev_msg_text {
 	display: inline-block;
-	font-size: 15px;
+	font-size: 11pt;
 	max-height: 58px;
 	margin-left: 8px;
 	overflow: hidden;
@@ -72,20 +76,21 @@
 	margin-right: 2px;
 	float: right;
 	margin-top: 1px;
-	color: #918d8d;
+	color: #969696;
 	min-width: 48px;
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
     display: block;
     max-width: 128px;
+    text-align: right;
 }
 
 .prev_name_text {
 	font-family: Verdana, Arial, Helvetica, sans-serif;
     font-size: 11pt;
 	vertical-align: top;
-	color: #3859a8;
+	color: #717171;
 	text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
@@ -116,6 +121,8 @@
 	margin-top: 8px;
 	margin-bottom: 8px;
 	display: inline-flex;
+
+
 }
 
 .main_msg_container {
@@ -133,6 +140,8 @@
     border-top: 3px black solid;
     border-bottom: 3px black solid;
     background-color: black;
+    color: #868484;
+    padding-left: 48px;
 }
 
 .main_msg_content {
@@ -143,7 +152,7 @@
 
 .main_name_text {
     font-family: fantasy;
-    font-size: 15px;
+    font-size: 11pt;
     vertical-align: top;
     color: #232323;
     display: inline;
@@ -154,6 +163,7 @@
     vertical-align: top;
     display: inline-block;
     margin-left: 12px;
+    font-size: 11pt;
     max-width: calc(100% - 62px);
     word-wrap: break-word;
     word-break: break-all;
@@ -162,12 +172,13 @@
 .main_date_text {
 	float: right;
 	margin-right: 6px;
+	font-size: 9pt;
 }
 
 .main_photo_img {
 	width: 42px;
 	height: 42px;
-	border-radius: 6px;
+	border-radius: 24px
 }
 
 .main_msg_options{
@@ -178,6 +189,7 @@
 .messages {
 	overflow-y: scroll;
 	height: calc(100% - 96px);
+    -webkit-overflow-scrolling: touch;
 }
 
 .send_msg_block {
@@ -200,11 +212,12 @@
 	margin-left: 14px;
 	height: calc(100% - 58px);
 	bottom: 24px;
+	width: 80%;
 	position: absolute;
 }
 
 .rotate_block {
-	background-color: transparent !important;
+	background-color: #E1E1E1;
 	width: 100%;
 	height: 100%;
 	transform: rotate(180deg);
@@ -255,6 +268,17 @@
 }
 
 
+.attach_file{
+    display: inline-block;
+    background: black;
+}
+
+.attach_file_input{
+    opacity: 0;
+}
+
+
+
 @media screen and (min-width:230px) and (max-width:568px) {
 
 .container {
@@ -264,9 +288,9 @@
 }
 
 .left {
-    z-index: 1;
     overflow-y: scroll;
     -webkit-overflow-scrolling: touch;
+    z-index: 1;
 }
 
 .right{
@@ -295,7 +319,6 @@
     color: white;
     margin-top: 3px;
 }
-
 
 }
 
@@ -338,6 +361,9 @@
 
 .left {
     z-index: 1;
+
+    overflow-y: scroll;
+    -webkit-overflow-scrolling: touch;
 }
 
 .logo_img{
