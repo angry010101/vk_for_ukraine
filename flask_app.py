@@ -78,7 +78,8 @@ def im():
     except:
         return redirect(url_for('index'))
     if api is None:
-        return render_template("autherr.html")
+        error = "Authentication error. Token is expired"
+        return redirect(url_for('index',errors=error))
     if request.method == "POST":
         import send
         try:
@@ -90,7 +91,6 @@ def im():
             return msgid
         except Exception:
             return 'error'
-    #frarr = api.friends.get(fields="uid, first_name, last_name, photo")
     return render_template("im.html")
 
 
@@ -357,30 +357,93 @@ def getUsers():
     r = e.execute(a=api,c=code)
     return json.dumps(r)
 
-@app.route('/file_upload',methods=["POST","GET"])
+@app.route('/file_upload',methods=["POST"])
 def fUpload():
     api = None
     try:
         api = getApi()
     except:
         return redirect(url_for('index'))
-    upserv = api.photos.getMessagesUploadServer();
 
+    import cgi, os
+    import cgitb; cgitb.enable()
 
-    form = cgi.FieldStorage()
-    r = form.getvalue('file')
+    try: # Windows needs stdio set for binary mode.
+        import msvcrt
+        msvcrt.setmode (0, os.O_BINARY) # stdin  = 0
+        msvcrt.setmode (1, os.O_BINARY) # stdout = 1
+    except ImportError:
+        pass
 
-    from urllib.parse import urlencode
-    from urllib.request import Request, urlopen
+    upserv = api.photos.getMessagesUploadServer()
+    #form = cgi.FieldStorage(keep_blank_values=True)
+    #r = form.getfirst("upload_file","");
 
+    pdict = {'upload_file':'*****'}
+    cgi.parse_multipart(self.request.body_file, pdict)
+
+    r = pdict['upload_file']
+    if r == None:
+        return "err"
+    else:
+        return "ok"
     url = upserv["upload_url"]
-    post_fields = {'photo': r}
-
-    request = Request(url, urlencode(post_fields).encode())
-    json1 = urlopen(request).read().decode()
-
+    files = {'photo': r}
+    import requests
+    response = requests.post(url, files=files)
+    json1 = response.status_code
     return json.dumps(json1)
 
+@app.route('/search_fun',methods=["POST"])
+def search_fun():
+    api = None
+    try:
+        api = getApi()
+    except:
+        return redirect(url_for('index'))
 
+
+    return "OK"
+
+
+@app.route('/messages_searchDialogs',methods=["POST"])
+def messages_searchDialogs():
+    api = None
+    try:
+        api = getApi()
+    except:
+        return redirect(url_for('index'))
+    q = None
+    try:
+        if request.method == "POST":
+            form = request.form
+            q = form["q"]
+    except Exception:
+        return "exception"
+    result = api.messages.searchDialogs(q=q,fields="",limit=20)
+    return json.dumps(result)
+
+@app.route('/messages_search',methods=["POST"])
+def messages_search():
+    api = None
+    try:
+        api = getApi()
+    except:
+        return redirect(url_for('index'))
+    q = None
+    offset = None
+    date = None
+    peer_id = None
+    try:
+        if request.method == "POST":
+            form = request.form
+            q = form["q"]
+            offset = form["offset"]
+            #date = form["date"]
+            peer_id = form["peer_id"]
+    except Exception:
+        return "exception"
+    result = api.messages.search(q=q,peer_id=peer_id,limit=20,offset=offset,count=20)
+    return json.dumps(result)
 
 app.secret_key = 'F13Zr47j\3yX R~X@@H(jmM]Lwf/,?KT'

@@ -15,7 +15,8 @@
 		    var addToOffsetDlg=true,addToOffsetMsg=true;
             var oldTs=0;
             var selectedDlgUserId=0;
-
+            var tempArrFwdMsg =[];
+            var tempArrFwdMsgC=0;
 
            // var additionalUserIds = []; var loadMoreUsers=0;
 
@@ -25,32 +26,45 @@
             var startedLongPoll = false;
             function startLongPoll(s,ts){
                 startedLongPoll = true;
-               // newMessagesGetter(s,ts);
+             //   newMessagesGetter(s,ts);
             }
 
             function stopLongPoll(){
                 startedLongPoll = false;
-              //  xhrLP.abort();
+                //xhrLP.abort();
             }
 
 
-            function showAttachmentAlert(x){
+            function showAttachmentAlert(x,flag){
                  var ai = document.getElementById("alertInf");
-
                  var aic = document.getElementById("alertInfContainer");
                  var ab = document.getElementById("alertBg");
-                 var i = document.createElement("img");
-                 i.src = x;
-                 i.style.width = "80%";
-                 i.style.height = "100%";
+                 switch (flag){
+                    case "fwd_msgs":
+                        var d1 = document.createElement("div");
+                        returnFwdMsgContainer(d1,tempArrFwdMsg[x],0,1);
+                        aic.appendChild(d1);
+                        break;
+                    case "photo":
+                        var i = document.createElement("img");
+                        i.src = x;
+                        i.style.width = "80%";
+                        i.style.height = "100%";
 
-                 ai.onclick = function() {
-                     ab.style.display = "none";
-                     ai.style.display = "none";
-                     aic.innerHTML = "";
+
+                        aic.appendChild(i);
+                        break;
+                    default:
+                        break;
+
                  }
 
-                 aic.appendChild(i);
+                 ai.onclick = function() {
+                        ab.style.display = "none";
+                        ai.style.display = "none";
+                        aic.innerHTML = "";
+                 }
+
                  ab.style.display = "block";
                  ai.style.display = "block";
             }
@@ -212,7 +226,7 @@
 
 
                     var temp = getInf(__cacheUsers,m["uid"]);
-                    if (current_user["uid"] == m["uid"]){
+                    if (/*current_user["uid"] == m["uid"] &&*/ m["out"] == "1"){
                             nspan.innerHTML = current_user["first_name"] + " " + current_user["last_name"];
                             s_img.src = current_user["photo_50"];
                     }
@@ -230,21 +244,7 @@
                             //loadUsers(jt[i]);
                         }
                     }
-        /*
-                    if (jt[i]["data"]["uid"] == rid){
-                        nspan.innerHTML = name;
-                    }
-                    else {
-                        nspan.innerHTML = current_user["first_name"] + " " + current_user["last_name"];
-                    }
 
-                    if (jt[i]["data"]["uid"] == rid){
-                        s_img.src = img;
-                    }
-                    else {
-                        s_img.src = current_user["photo_50"];
-                    }
-*/
                     var divO = document.createElement("div");
                     divO.className = "main_msg_options";
 
@@ -268,59 +268,16 @@
                     if (typeof m["fwd_messages"] != 'undefined'){
                         var a = m["fwd_messages"];
                         for (var i1=0; i1<a.length; i1++){
-                            var divF = document.createElement("div");
-                            divF.className = "msg_attachments";
-                            divF.innerHTML = a[i1]["body"];
-                            divI.appendChild(document.createElement("br"));
-                            divI.appendChild(divF);
+                            returnFwdMsgContainer(divI,a,i1,0);
                         }
                     }
 
                     if (typeof m["attachments"] != 'undefined'){
-                        var a = m["attachments"];
-                        var divF = document.createElement("div");
-                        divF.className = "msg_attachments";
-                        for (var i1=0; i1<a.length; i1++){
-                             switch (a[i1]["type"]){
-                                 case "photo":
-                                     var img1 = document.createElement("img");
-                                     img1.setAttribute("large",url_to_replace + a[i1]["photo"]["src_big"]);
-                                     img1.src = url_to_replace + a[i1]["photo"]["src"];
-                                     img1.style.marginLeft = "10px";
-                                     divF.appendChild(img1);
-                                     img1.onclick = function(){
-                                         showAttachmentAlert(this.getAttribute("large"));
-                                     }
-                                     break;
-                                 case "doc":
-                                     if (typeof a[i1]["doc"]["gift"] != 'undefined'){
-                                         //it's maybe a gift
-                                         var img1 = document.createElement("img");
-                                        img1.setAttribute("large",url_to_replace + a[i1]["photo"]["src_big"]);
-                                         img1.src = url_to_replace + a[i1]["photo"]["src"];
-                                        img1.style.marginLeft = "10px";
-                                        divF.appendChild(img1);
-                                        img1.onclick = function(){
-                                             showAttachmentAlert(this.getAttribute("large"));
-                                        }
-                                     }
-                                     else {
-                                        var a1 = document.createElement("audio");
-                                         a1.setAttribute("controls","");
-                                         var source = document.createElement("source");
-                                         source.src = url_to_replace + a[i1]["doc"]["url"];
-                                         source.type = "audio/ogg; codecs=vorbis";
-                                         a1.appendChild(source);
-                                         divF.appendChild(a1);
-                                     }
-                                     break;
-                                 default:
-                                     break;
-                             }
-                        }
+                        var att = parseAttachment(m["attachments"]);
                         divI.appendChild(document.createElement("br"));
-                        divI.appendChild(divF);
+                        divI.appendChild(att);
                     }
+
                     var msgct = document.getElementById('msg_container');
                     if (pos == 1){
                         try{
@@ -334,6 +291,149 @@
                         msgct.appendChild(dinp);
                     }
             }
+
+            function returnFwdMsgContainer(divI,a,i1,RecursiveParse){
+                var divF = document.createElement("div");
+                            divF.className = "msg_attachments";
+                            var divFC = document.createElement("div");
+                            divFC.className = "msg_attachments_content";
+                            var imgFM = document.createElement("img");
+                            var usr;
+                            /*if (RecursiveParse == 1){
+                                alert(a[i1]["uid"]);
+                            }*/
+
+
+
+
+                            usr = getInf(__cacheUsers,a[i1]["uid"]);
+                            if (typeof usr == 'undefined'){
+                                usr = [];
+                                usr["first_name"] = 'f-name';
+                                usr["last_name"] = "l-name";
+                                usr["photo_50"] = 'photo';
+                            }
+                            imgFM.src = url_to_replace + usr["photo_50"];
+                            imgFM.className = "main_photo_img";
+
+                            var fm_main_div =  document.createElement("div");
+                            fm_main_div.className = "fwd_message_main" ;
+                            var fm_main_div_name =  document.createElement("div");
+                            fm_main_div_name.className = "main_name_text";
+                            fm_main_div_name.innerHTML = usr["first_name"] + " " + usr["last_name"];
+
+                            var fm_main_div_text =  document.createElement("div");
+                            fm_main_div_text.className = "fwd_message_main_text";
+                            fm_main_div_text.innerHTML = a[i1]["body"];
+
+
+
+
+
+                            if (typeof a[i1]["attachments"] != "undefined"){
+                               try{
+                                   var dA = parseAttachment(a[i1]["attachments"]);
+                                   dA.style.marginLeft = 0;
+                                    fm_main_div_text.appendChild(dA);
+                                }
+                                catch(e) {
+                                    fm_main_div_text.innerHTML = "<br><a style='color: blue'>Attachments</a>";
+                                }
+                            }
+
+
+                            if (typeof a[i1]["fwd_messages"] != "undefined"){
+                                if (RecursiveParse == 0){
+                                    var d1 = document.createElement("div");
+                                    d1.style.display = 'none';
+                                    d1.innerHTML = a[i1];
+                                    fm_main_div_text.appendChild(d1);
+                                    tempArrFwdMsg[tempArrFwdMsgC] = a;
+                                    fm_main_div_text.innerHTML += "<br><a style='color: blue' onclick=" + "showAttachmentAlert("  + tempArrFwdMsgC++ + ",'fwd_msgs');" +  ">Forwarded messages</a>";
+                                }
+                                else {
+                                    var k = a[i1]["fwd_messages"].length;
+                                    for (var i2=0;i2<k;i2++){
+                                        returnFwdMsgContainer(fm_main_div_text,a[i1]["fwd_messages"],i2,1);
+                                    }
+                                }
+
+                            }
+
+
+                            fm_main_div.appendChild(fm_main_div_name);
+                            fm_main_div.appendChild(fm_main_div_text);
+
+
+                            var fm_date_div = document.createElement("div");
+                            fm_date_div.className = "fwd_message_date";
+                            var d1 = new Date(parseInt(a[i1]["date"]*1000));
+                            fm_date_div.innerHTML = '<span class="main_date_text">' + formatDate(d1) + '</span>';
+
+
+                            //parseInt(a[i1]["date"])*1000;
+                            divFC.appendChild(imgFM);
+                            divFC.appendChild(fm_main_div);
+                            divFC.appendChild(fm_date_div);
+
+
+                            divF.appendChild(divFC);
+                            divI.appendChild(document.createElement("br"));
+                            divI.appendChild(divF);
+
+
+
+            }
+
+            function parseAttachment(m){
+                        var a = m;
+                        var divF = document.createElement("div");
+                        divF.className = "msg_attachments";
+                        for (var i1=0; i1<a.length; i1++){
+                             switch (a[i1]["type"]){
+                                 case "photo":
+                                     var img1 = document.createElement("img");
+                                     img1.setAttribute("large",url_to_replace + a[i1]["photo"]["src_big"]);
+                                     img1.src = url_to_replace + a[i1]["photo"]["src"];
+                                     img1.style.marginLeft = "10px";
+                                     divF.appendChild(img1);
+                                     img1.onclick = function(){
+                                         showAttachmentAlert(this.getAttribute("large"),"photo");
+                                     }
+                                     break;
+                                 case "doc":
+                                     if (typeof a[i1]["doc"]["gift"] != 'undefined'){
+                                         //it's maybe a gift
+                                         var img1 = document.createElement("img");
+                                        img1.setAttribute("large",url_to_replace + a[i1]["photo"]["src_big"]);
+                                         img1.src = url_to_replace + a[i1]["photo"]["src"];
+                                        img1.style.marginLeft = "10px";
+                                        divF.appendChild(img1);
+                                        img1.onclick = function(){
+                                             showAttachmentAlert(this.getAttribute("large"),"photo");
+                                        }
+                                     }
+                                     else {
+                                        var a1 = document.createElement("audio");
+                                         a1.setAttribute("controls","");
+                                         var source = document.createElement("source");
+                                         source.src = url_to_replace + a[i1]["doc"]["url"];
+                                         source.type = "audio/ogg; codecs=vorbis";
+                                         a1.appendChild(source);
+                                         divF.appendChild(a1);
+                                     }
+                                     break;
+                                case "wall":
+                                        var dN = parseAttachment(a[i1]["wall"]["attachments"]);
+                                        divF.appendChild(dN);
+                                    break;
+                                 default:
+                                     break;
+                             }
+                        }
+                        return divF;
+            }
+
 
             function loadUsers(arr){
                 //just don't give a fuck
@@ -364,9 +464,10 @@
                 }
 
 		        xhr.onreadystatechange = function(){
-
-                  parseMsgInfoPrev(xhr.responseText);
-		          startedUpdating=false;
+                    if(xhr.readyState == 4){
+                        parseMsgInfoPrev(xhr.responseText);
+		                startedUpdating=false;
+                    }
 		        };
                 xhr.open('GET', '/execute?r=' + Math.random() + "&dialogsOffset=" + dialogsOffset, true);
 
@@ -402,8 +503,8 @@
 
 			function parseSendMsgResponse(r,txt,id){
 			   if (typeof parseInt(r) !== "undefined"){
-			       //OK
-			        addMsg(r,txt,current_user);
+			       /*//OK
+			        //addMsg(r,txt,current_user);
 
 			        m = [];
                     m["body"] = txt;
@@ -412,7 +513,7 @@
                     m["date"] = "444444444";
                     var i = checkAddedMsgById(m["uid"]);
                     updatePrevMsg(m,i);
-                    upPrevMsg(i);
+                    upPrevMsg(i);*/
 			       document.getElementById("msgtxt").value="";
 
 			   }
@@ -502,8 +603,6 @@
                 startedLoadingMoreDlgs = false;
             }
 
-
-
             function parseMyPrevInfo(me){
                 current_user["first_name"] = me["first_name"];
 		        current_user["last_name"] = me["last_name"];
@@ -544,7 +643,7 @@
                     divT.innerHTML = m["body"];
 
                     if (parseInt(m["read_state"]) == 0 && parseInt(m["out"]) != 1){
-                        divElem.style.backgroundColor = "rgb(186, 211, 244)";
+                        divElem.style.backgroundColor = "rgb(186, 216, 255)";
                     }
 
                     //TODO: check if chat
@@ -727,9 +826,13 @@
                     }
                 }
                 },3000,lastMsgId);
-
             }
 
+            var timerLP;
+            var xhrLP;
+            function startLP(){
+                timerLP = setInterval(startLongPoll(),1000);
+            }
 
             function parseLPHResponse(t){
                 var jt =  JSON.parse(t);
@@ -753,7 +856,7 @@
                     else {
                         addMsgPrev(m);
                     }
-                    if ((current_dialog["rid"]==m["uid"] || parseInt(current_dialog["rid"]) == parseInt(m["chat_id"])+2000000000)&& m["out"] != "1"){
+                    if ((current_dialog["rid"]==m["uid"] || parseInt(current_dialog["rid"]) == parseInt(m["chat_id"])+2000000000)){
                         addMsgToDlg(m,1);
                     }
                 }
@@ -803,29 +906,7 @@
                                     }
                                     break
                                 case 4:
-                                    //new message
-                                    m = [];
-                                    m["body"] = updates[i][5];
-                                    m["uid"] = updates[i][3];
-                                    m["mid"] = updates[i][2];
-                                    m["date"] = updates[i][4];
-                                    var i = checkAddedMsgById(m["uid"]);
-                                    if (i) {
-                                        updatePrevMsg(m,i);
-                                        upPrevMsg(i)
-                                    }
-                                    else {
-                                        addMsgPrev(m);
-                                    }
-                                    if (m["uid"] == selectedDlgUserId){
-                                        if (m["mid"] == "51"){ // why 51 ???
-                                            addMsg(m["mid"],m["body"],current_user);
-                                        }
-                                        else {
-                                            addMsg(m["mid"],m["body"],getInf(__cacheUsers,m["uid"]));
-                                        }
-                                    }
-                                    break;
+                                    //ignore new messages cause LPH
                                 case 61:
                                     //user_id typing
                                     var i = checkAddedMsgById(updates[i][1]);
@@ -930,6 +1011,7 @@
                 var myDiv = document.getElementById("prev_msg_container");
                 if (myDiv.offsetHeight + myDiv.scrollTop >= myDiv.scrollHeight - 100 && !startedLoadingMoreDlgs) {
                     startedLoadingMoreDlgs = true;
+                   // alert(myDiv.offsetHeight + " " + myDiv.scrollTop + " " + myDiv.scrollHeight );
                     getPrevInfo(dialogs_offset);
                 }
             }
@@ -948,7 +1030,10 @@
                 }
                 else {
                     return ("00" + d.getDate()).slice(-2) + "/" +
-                    ("00" + (d.getMonth() + 1)).slice(-2)
+                    ("00" + (d.getMonth() + 1)).slice(-2) + " " +
+                    ("00" + d.getHours()).slice(-2) + ":" +
+                    ("00" + d.getMinutes()).slice(-2) + ":" +
+                    ("00" + d.getSeconds()).slice(-2);
                 }
                 return dformat;
             }
@@ -1014,15 +1099,18 @@
 								    <textarea type="text" id="msgtxt" name="msg" placeholder="Your message..." style="font-size: 16px;"></textarea>
 								    <div class="send_btn">
 								    	<input type="submit" name="sbm" value="send" class="send_btn_input" onclick="sendMsg(document.getElementById('rec_id').value,document.getElementById('msgtxt').value,document.getElementById('isChat').value); return false;">
+								    	<!-- -->
 								    </div>
 								</div>
 								<input type="hidden" id="rec_id" name="recipient_id" >
 								<input type="hidden" id="isChat">
 							</form>
-							<form action="/file_upload" class="dropzone" enctype="multipart/form-data" method="post" id="file_uploader">
-								<div class="msg_tools">
-								    <div class="attach_file">
-                                        <input name="file" class="attach_file_input" type="file" multiple onchange="document.getElementById('file_uploader').submit();"/>
+							<form enctype="multipart/form-data" action="/file_upload" style="display: none;" class="dropzone" method="post" id="file_uploader">
+								<div class="msg_tools324234">
+								    <div class="attach_file1231231">
+                                        <input name="upload_file" class="attach_file_input12313" type="file" />
+                                        <input type="submit">
+                                        <!--  onchange="document.getElementById('file_uploader').submit();" -->
                                     </div>
 								</div>
 							</form>
